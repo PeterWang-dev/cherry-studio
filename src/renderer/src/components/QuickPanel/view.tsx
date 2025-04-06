@@ -3,11 +3,15 @@ import { isMac } from '@renderer/config/constant'
 import { classNames } from '@renderer/utils'
 import { Flex } from 'antd'
 import { t } from 'i18next'
-import React, { use, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { use, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import styled from 'styled-components'
 
 import { QuickPanelContext } from './provider'
 import { QuickPanelCallBackOptions, QuickPanelCloseAction, QuickPanelListItem, QuickPanelOpenOptions } from './types'
+
+interface Props {
+  setInputText: React.Dispatch<React.SetStateAction<string>>
+}
 
 /**
  * @description 快捷面板内容视图;
@@ -16,16 +20,16 @@ import { QuickPanelCallBackOptions, QuickPanelCloseAction, QuickPanelListItem, Q
  *
  * 无奈之举，为了清除输入框搜索文本，所以传了个setInputText进来
  */
-export const QuickPanelView: React.FC<{
-  setInputText: React.Dispatch<React.SetStateAction<string>>
-}> = ({ setInputText }) => {
+export const QuickPanelView: React.FC<Props> = ({ setInputText }) => {
   const ctx = use(QuickPanelContext)
+
   if (!ctx) {
     throw new Error('QuickPanel must be used within a QuickPanelProvider')
   }
 
   const ASSISTIVE_KEY = isMac ? '⌘' : 'Ctrl'
   const [isAssistiveKeyPressed, setIsAssistiveKeyPressed] = useState(false)
+
   // 避免上下翻页时，鼠标干扰
   const [isMouseOver, setIsMouseOver] = useState(false)
 
@@ -38,7 +42,8 @@ export const QuickPanelView: React.FC<{
 
   const scrollBlock = useRef<ScrollLogicalPosition>('nearest')
 
-  const [searchText, setSearchText] = useState('')
+  const [_searchText, setSearchText] = useState('')
+  const searchText = useDeferredValue(_searchText)
   const searchTextRef = useRef('')
 
   // 解决长按上下键时滚动太慢问题
@@ -133,6 +138,7 @@ export const QuickPanelView: React.FC<{
         searchText: searchText,
         multiple: isAssistiveKeyPressed
       }
+
       ctx.beforeAction?.(quickPanelCallBackOptions)
       item?.action?.(quickPanelCallBackOptions)
       ctx.afterAction?.(quickPanelCallBackOptions)
@@ -345,6 +351,7 @@ export const QuickPanelView: React.FC<{
   }, [index, isAssistiveKeyPressed, historyPanel, ctx, list, handleItemAction, handleClose, clearSearchText])
 
   const [footerWidth, setFooterWidth] = useState(0)
+
   useEffect(() => {
     if (!footerRef.current || !ctx.isVisible) return
     const footerWidth = footerRef.current.clientWidth
